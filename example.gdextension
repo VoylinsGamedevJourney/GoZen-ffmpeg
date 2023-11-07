@@ -1,0 +1,12 @@
+This is an example of what's being used inside of GoZen to make use of this gdextension
+TODO: Maybe find a way to automate the creation of this.
+-----------------
+
+[configuration]
+
+entry_symbol = "gozen_interface_library_init"
+compatibility_minimum = 4.2
+
+[libraries]
+
+linux.debug.x86_64 = "res://bin/libgozen_interface.linux.template_debug.x86_64.so"
