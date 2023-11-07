@@ -20,7 +20,7 @@ elif platform.system() == "Darwin": # macOS - probably not working
 src = Glob("src/*.cpp")
 
 
-libpath = "bin/libgozen_interface{}{}".format(env["suffix"], env["SHLIBSUFFIX"])
+libpath = "bin/libgozen{}{}".format(env["suffix"], env["SHLIBSUFFIX"])
 print("libpath:", libpath)
 
 
