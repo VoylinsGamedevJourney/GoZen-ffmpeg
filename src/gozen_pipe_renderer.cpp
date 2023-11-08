@@ -11,7 +11,7 @@ void GoZenPipeRenderer::setup(String output, int frame_rate) {
   cmd += "-y ";                               // Overwrites output file if already exists
   cmd += "-f image2pipe ";                    // Input format: image sequence
   cmd += "-r " + std::to_string(frame_rate);  // Setting the frame rate
-  cmd += "-i - ";                             // Read input from pipe
+  cmd += " -i - ";                            // Read input from pipe
   cmd += "-c:v libvpx-vp9 ";                  // Codec: VP9 video codec
   cmd += "-b:v 1M ";                          // Video bitrate
   cmd += "-pix_fmt yuv444p ";                 // Pixel format: yuv420p
@@ -19,7 +19,7 @@ void GoZenPipeRenderer::setup(String output, int frame_rate) {
   cmd += output.utf8().get_data();            // Output file path
 
   // Debug to see if string is correct or not
-  //UtilityFunctions::print(cmd.c_str());
+  UtilityFunctions::print(cmd.c_str());
 
   // Opening the pipe
   ffmpegPipe = popen(cmd.c_str(), "w");
@@ -32,30 +32,13 @@ void GoZenPipeRenderer::setup(String output, int frame_rate) {
 }
 
 
-void GoZenPipeRenderer::add_frame(PackedByteArray frame_data) {
+void GoZenPipeRenderer::add_frame(Ref<Image> frame_image) {
+  // If file does not render use print to see the return values of fwrite and fflush
+  // When frame_data is too big in bytes, it stops working
+  PackedByteArray frame_data = frame_image->save_webp_to_buffer(false, 1.0);
   if (ffmpegPipe) {
-    //UtilityFunctions::print(fwrite(frame_data.ptr(), 1, frame_data.size(), ffmpegPipe));
-    //UtilityFunctions::print(frame_data.size());
-    //fflush(ffmpegPipe);
-
-    size_t data_size = frame_data.size();
-    size_t total_written = 0;
-
-    while (total_written < data_size) {
-      size_t bytes_written = fwrite(frame_data.ptrw() + total_written, 1, data_size - total_written, ffmpegPipe);
-      if (bytes_written < 0) {
-        // Handle the error
-        UtilityFunctions::printerr("Error writing to pipe");
-        break;
-      }
-
-      total_written += bytes_written;
-      UtilityFunctions::print(bytes_written);
-      UtilityFunctions::print(total_written);
-    }
-
-    // Flush the internal buffer
-    UtilityFunctions::print(fflush(ffmpegPipe));
+    fwrite(frame_data.ptrw(), 1, frame_data.size(), ffmpegPipe);
+    fflush(ffmpegPipe);
   } else {
     UtilityFunctions::printerr("FFMPEG pipe does not exist!");
   }
