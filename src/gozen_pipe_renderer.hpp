@@ -24,10 +24,13 @@ class GoZenPipeRenderer : public Resource {
     void add_frame(Ref<Image> frame_image);
     void finish_video();
 
+    void GoZenPipeRenderer::add_audio(String input_video, String input_audio, bool shortest_stream = true);
+
   protected:
     static void _bind_methods() {
       ClassDB::bind_method(D_METHOD("setup", "output:String", "frame_rate:int"), &GoZenPipeRenderer::setup);
       ClassDB::bind_method(D_METHOD("add_frame", "frame_image:Image"), &GoZenPipeRenderer::add_frame);
       ClassDB::bind_method(D_METHOD("finish_video"), &GoZenPipeRenderer::finish_video);
+      ClassDB::bind_method(D_METHOD("add_audio", "input_video:String", "input_audio:String", "shortest_stream:bool"), &GoZenPipeRenderer::add_audio);
     }
 };
