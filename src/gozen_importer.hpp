@@ -14,7 +14,7 @@ class GoZenImporter : public Resource {
     GoZenImporter() {}
     ~GoZenImporter() {}
 
-    void get_video_streams(String file_path);
+    void get_video_streams(String file_path) {}
 
   protected:
     static void _bind_methods() {
