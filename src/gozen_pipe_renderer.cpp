@@ -19,15 +19,13 @@ void GoZenPipeRenderer::setup(String output, int frame_rate) {
   cmd += output.utf8().get_data();            // Output file path
 
   // Debug to see if string is correct or not
-  UtilityFunctions::print(cmd.c_str());
+  //UtilityFunctions::print(cmd.c_str());
 
   // Opening the pipe
   ffmpegPipe = popen(cmd.c_str(), "w");
   if (!ffmpegPipe) {
     UtilityFunctions::printerr("Failed to open ffmpeg pipe!");
     exit(1);
-  } else {
-    UtilityFunctions::print("FFMPEG data created successfully!");
   }
 }
 
@@ -35,8 +33,9 @@ void GoZenPipeRenderer::setup(String output, int frame_rate) {
 void GoZenPipeRenderer::add_frame(Ref<Image> frame_image) {
   // If file does not render use print to see the return values of fwrite and fflush
   // When frame_data is too big in bytes, it stops working
+
   PackedByteArray frame_data = frame_image->save_webp_to_buffer(false, 1.0);
-  //PackedByteArray frame_data = frame_image->save_png_to_buffer();
+  
   if (ffmpegPipe) {
     fwrite(frame_data.ptrw(), 1, frame_data.size(), ffmpegPipe);
     fflush(ffmpegPipe);
@@ -55,7 +54,7 @@ void GoZenPipeRenderer::finish_video() {
 }
 
 
-void GoZenPipeRenderer::add_audio(String input_video, String input_audio, bool shortest_stream = true) {
+void GoZenPipeRenderer::add_audio(String input_video, String input_audio, bool shortest_stream) {
   std::string cmd = "ffmpeg";
   cmd += " -i " + std::string(input_video.utf8().get_data());     // Input video file
   cmd += " -i " + std::string(input_audio.utf8().get_data());     // Input audio file
@@ -64,4 +63,10 @@ void GoZenPipeRenderer::add_audio(String input_video, String input_audio, bool s
   if (shortest_stream)
     cmd += " -shortest";                                          // Take shortest stream as video length
   cmd += " final_" + std::string(input_video.utf8().get_data());  // Output file name
+
+  int result = system(cmd.c_str());
+  if (result != 0) {
+    UtilityFunctions::printerr(
+        "Error " + String(std::to_string(result).c_str()) + ": could not add audio successfully!");
+  } 
 }

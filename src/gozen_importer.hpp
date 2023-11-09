@@ -4,6 +4,8 @@
 #include <godot_cpp/classes/resource.hpp>
 #include <godot_cpp/variant/builtin_types.hpp>
 #include <godot_cpp/variant/variant.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
+
 
 using namespace godot;
 
@@ -14,7 +16,7 @@ class GoZenImporter : public Resource {
     GoZenImporter() {}
     ~GoZenImporter() {}
 
-    void get_video_streams(String file_path) {}
+    void get_video_streams(String file_path);
 
   protected:
     static void _bind_methods() {

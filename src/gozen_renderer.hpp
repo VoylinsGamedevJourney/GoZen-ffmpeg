@@ -2,6 +2,8 @@
 // This is the renderer, create an instance, feed it data, and make the finished video into a file.
 
 #include <godot_cpp/classes/resource.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
+
 
 using namespace godot;
 
@@ -12,12 +14,12 @@ class GoZenRenderer : public Resource {
     GoZenRenderer() {}
     ~GoZenRenderer() {}
 
-    void add_frame() {}
-    void add_audio() {}
-    void add_subtitles() {}
-    void add_data() {}
+    void add_frame();
+    void add_audio();
+    void add_subtitles();
+    void add_data();
 
-    void finish_video() {}
+    void finish_video();
 
   protected:
     static void _bind_methods() {

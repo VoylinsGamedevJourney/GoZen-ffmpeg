@@ -8,6 +8,7 @@
 #include <godot_cpp/variant/variant.hpp>
 #include <godot_cpp/variant/builtin_types.hpp>
 
+
 using namespace godot;
 
 class GoZenPipeRenderer : public Resource {
@@ -24,7 +25,7 @@ class GoZenPipeRenderer : public Resource {
     void add_frame(Ref<Image> frame_image);
     void finish_video();
 
-    void GoZenPipeRenderer::add_audio(String input_video, String input_audio, bool shortest_stream = true);
+    void add_audio(String input_video, String input_audio, bool shortest_stream = true);
 
   protected:
     static void _bind_methods() {
