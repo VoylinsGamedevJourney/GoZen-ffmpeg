@@ -1,18 +1,18 @@
 #pragma once
 // This is the importer which breaks down video files and sends the different streams to Godot
-// get_video_streams - Error codes:
-//    0: OK
-//   -1: Failed to open video file
-//   -2: Failed to get stream info
-//   -3: Failed to find video stream
-//   -4: Unsupported video codec
-//   -5: Couldn't open codec
-
 
 #include <godot_cpp/classes/resource.hpp>
 #include <godot_cpp/variant/builtin_types.hpp>
 #include <godot_cpp/variant/variant.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
+
+extern "C" {
+  #include <libavutil/imgutils.h>
+  #include <libavutil/samplefmt.h>
+  #include <libavutil/timestamp.h>
+  #include <libavcodec/avcodec.h>
+  #include <libavformat/avformat.h>
+}
 
 
 using namespace godot;
@@ -30,4 +30,10 @@ class GoZenImporter : public Resource {
     static void _bind_methods() {
       ClassDB::bind_method(D_METHOD("get_video_streams"), &GoZenImporter::get_video_streams, "file_path");
     }
+  
+  private:
+    static int open_codec_context(int *stream_index, AVCodecContext **codec_context, AVFormatContext *format_context, enum AVMediaType type); 
+    static int decode_packet(AVCodecContext *codec, const AVPacket *packet, AVFrame *p_frame, int width, int height, enum AVPixelFormat pix_fmt);
+    static int output_video_frame(AVFrame *p_frame, int width, int height, enum AVPixelFormat pix_fmt);
+    static int output_audio_frame(AVFrame *p_frame);
 };
