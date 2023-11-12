@@ -6,6 +6,7 @@
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
 
+#include "gozen_interface.hpp"
 #include "gozen_importer.hpp"
 #include "gozen_renderer.hpp"
 #include "gozen_pipe_renderer.hpp"
@@ -16,6 +17,7 @@ void initialize_gozen_library_module(ModuleInitializationLevel p_level) {
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
 	}
+	ClassDB::register_class<GoZenInterface>();
 	ClassDB::register_class<GoZenImporter>();
 	ClassDB::register_class<GoZenRenderer>();
 	ClassDB::register_class<GoZenPipeRenderer>();
