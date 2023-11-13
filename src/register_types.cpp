@@ -10,6 +10,7 @@
 #include "gozen_importer.hpp"
 #include "gozen_renderer.hpp"
 #include "gozen_pipe_renderer.hpp"
+#include "gozen_render_profile.hpp"
 
 using namespace godot;
 
@@ -21,6 +22,7 @@ void initialize_gozen_library_module(ModuleInitializationLevel p_level) {
 	ClassDB::register_class<GoZenImporter>();
 	ClassDB::register_class<GoZenRenderer>();
 	ClassDB::register_class<GoZenPipeRenderer>();
+	ClassDB::register_class<GoZenRenderProfile>();
 }
 
 void uninitialize_gozen_library_module(ModuleInitializationLevel p_level) {
