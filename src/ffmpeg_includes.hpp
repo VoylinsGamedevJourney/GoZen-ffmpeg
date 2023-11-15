@@ -3,7 +3,9 @@
 extern "C" {
   #include <libavcodec/avcodec.h>
   #include <libavformat/avformat.h>
+  #include <libavdevice/avdevice.h>
   #include <libavutil/dict.h>
+  #include <libpostproc/postprocess.h>
   #include <libavcodec/avcodec.h>
   #include <libavformat/avformat.h>
   #include <libavfilter/buffersink.h>

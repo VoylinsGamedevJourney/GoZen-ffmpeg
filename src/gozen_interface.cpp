@@ -1,111 +1,215 @@
 #include "gozen_interface.hpp"
 
-#include <godot_cpp/variant/utility_functions.hpp>
-extern "C" {
-  #include <libavcodec/avcodec.h>
-  #include <libavformat/avformat.h>
+
+/* AV CODEC */
+int GoZenInterface::get_avcodec_version() {
+  return static_cast<int>(avcodec_version());
 }
 
 
-void GoZenInterface::load_video(String file_path) {
-  UtilityFunctions::print_rich("[b]GoZenInterface:[/b] Getting video stream");
-  std::string path_file = file_path.utf8().get_data();
+String GoZenInterface::get_avcodec_build_config() {
+  return avcodec_configuration();
+}
 
-  int frame_width, frame_height;
-  unsigned char* frame_data;
-  if (!load_frame(path_file.c_str(), &frame_width, &frame_height, &frame_data)) {
-    UtilityFunctions::printerr("Couldn't load video frame!");
+
+String GoZenInterface::get_avcodec_license() {
+  return avcodec_license();
+}
+
+
+/* AV FILTER */
+int GoZenInterface::get_avfilter_version() {
+  return avfilter_version();
+}
+
+
+String GoZenInterface::get_avfilter_build_config() {
+  return avfilter_configuration();
+}
+
+
+String GoZenInterface::get_avfilter_license() {
+  return avfilter_license();
+}
+
+
+/* AV IO */
+String GoZenInterface::get_avio_find_protocol_name(String url) {
+  return avio_find_protocol_name(url.utf8());
+}
+
+
+int GoZenInterface::get_avio_check(String url, int flags) {
+  // This method is unsafe as the checked resource may change permission or its existence from one call to another.
+  return avio_check(url.utf8(), flags);
+}
+
+
+/* AV FORMAT */
+int GoZenInterface::get_avformat_version() {
+  return avformat_version();
+}
+
+
+String GoZenInterface::get_avformat_build_config() {
+  return avformat_configuration();
+}
+
+
+String GoZenInterface::get_avformat_license() {
+  return avformat_license();
+}
+
+
+int GoZenInterface::get_av_filename_number_test(String filename) {
+  return av_filename_number_test(filename.utf8());
+}
+
+
+/* AV DEVICE */
+int GoZenInterface::get_avdevice_version() {
+  return avdevice_version();
+}
+
+
+String GoZenInterface::get_avdevice_build_config() {
+  return avdevice_configuration();
+}
+
+
+String GoZenInterface::get_avdevice_license() {
+  return avdevice_license();
+}
+
+
+/* AV UTIL */
+int GoZenInterface::get_avutil_version() {
+  return avutil_version();
+}
+
+
+String GoZenInterface::get_av_version_info() {
+  return av_version_info();
+}
+
+
+String GoZenInterface::get_avutil_configuration() {
+  return avutil_configuration();
+}
+
+
+String GoZenInterface::get_avutil_license() {
+  return avutil_license();
+}
+
+
+/* POST PROC */
+int GoZenInterface::get_postproc_version() {
+  return postproc_version();
+}
+
+
+String GoZenInterface::get_postproc_configuration() {
+  return postproc_configuration();
+}
+
+
+String GoZenInterface::get_postproc_license() {
+  return postproc_license();
+}
+
+
+/* SWSCALE */
+int GoZenInterface::get_swscale_version() {
+  return swscale_version();
+}
+
+
+String GoZenInterface::get_swscale_configuration() {
+  return swscale_configuration();
+}
+
+
+String GoZenInterface::get_swscale_license() {
+  return swscale_license();
+}
+
+
+/* CODEC STUFF */
+Dictionary GoZenInterface::get_video_file_meta(String file_path) {
+  AVFormatContext *p_format_context = NULL;
+  const AVDictionaryEntry *p_tag = NULL;
+  Dictionary dic = {};
+ 
+  if (avformat_open_input(&p_format_context, file_path.utf8(), NULL, NULL)) {
+    UtilityFunctions::printerr("Could not open file!");
+    return dic;
   }
-
-}
-
-
-bool GoZenInterface::load_frame(const char* filename, int* width, int* height, unsigned char** data) {
   
-  // Open video file 
-  AVFormatContext* av_format_ctx = avformat_alloc_context();
-  if (!av_format_ctx) {
-    UtilityFunctions::printerr("Could not create av format context!");
-    return false;
+  if (avformat_find_stream_info(p_format_context, NULL) < 0) {
+    UtilityFunctions::printerr("Could not find stream info!");
+    return dic;
   }
-
-  if (avformat_open_input(&av_format_ctx ,filename, NULL, NULL) != 0) {
-    UtilityFunctions::printerr("Could not open video file!");
-    return false;
-  }
-
-  // Find video and audio stream of file
-  int video_stream_index = -1;
-  //int audio_stream_index = -1;
-  AVCodecParameters* av_codec_params;
-  const AVCodec* av_codec;
-
-  for (int i = 0; i < av_format_ctx->nb_streams; i++) {
-    auto stream = av_format_ctx->streams[i];
-    av_codec_params = av_format_ctx->streams[i]->codecpar;
-    av_codec = avcodec_find_decoder(av_codec_params->codec_id);
-    
-    if (!av_codec) {
-      continue;
-    }
-    if (av_codec_params->codec_type == AVMEDIA_TYPE_VIDEO) {
-      video_stream_index = i;
-      UtilityFunctions::print("Video stream found");
-      break;
-    }
-    //if (av_codec_params->codec_type == AVMEDIA_TYPE_AUDIO) {
-    //  audio_stream_index = i;
-    //  UtilityFunctions::print("Audio stream found");
-    //}
-    //if (video_stream_index != -1 && audio_stream_index != -1)
-    //  break;  
-  }
-
-  if (video_stream_index == -1) {
-    UtilityFunctions::printerr("Could not find stream!");
-    return false;
-  }
-  //if (audio_stream_index == -1) {
-  //  UtilityFunctions::printerr("Could not find audio stream!");
-  //  return false;
-  //}
-
-  // Setup decoder with codec context
-  AVCodecContext* av_codec_ctx = avcodec_alloc_context3(av_codec);
-  if (!av_codec_ctx) {
-    UtilityFunctions::printerr("Could not create AVCodecContext!");
-    return false;
-  }
-  if (!avcodec_parameters_to_context(av_codec_ctx, av_codec_params)) {
-    UtilityFunctions::printerr("Could not initialize AVCodecContext!");
-    return false;
-  }
-  if (!avcodec_open2(av_codec_ctx, av_codec, NULL) < 0) {
-    UtilityFunctions::printerr("Could not open codec!");
-    return false;
-  }
-
-  AVFrame* av_frame = av_frame_alloc();
-  if (!av_frame) {
-    UtilityFunctions::printerr("Could not allocate AVFrame!");
-    return false;
-  }
-  AVPacket* av_packet = av_packet_alloc();
-  if (!av_packet) {
-    UtilityFunctions::printerr("Could not allocate AVPacket!");
-    return false;
-  }
-
-  avformat_close_input(&av_format_ctx);
-  avformat_free_context(av_format_ctx);
-  avcodec_free_context(&av_codec_ctx);
-
-  UtilityFunctions::print("Everything okay");
-  return true;
+  
+  while ((p_tag = av_dict_iterate(p_format_context->metadata, p_tag)))
+    dic[p_tag->key] = p_tag->value;
+  
+  avformat_close_input(&p_format_context);
+  return dic;
 }
 
 
-void GoZenInterface::_bind_methods() {
-  ClassDB::bind_method(D_METHOD("load_video"), &GoZenInterface::load_video, "file_path");
-  //ClassDB::bind_method(D_METHOD("load_frame"), &GoZenInterface::load_frame, "filename", "width", "height", "data");
+bool GoZenInterface::is_codec_supported(CODEC codec) { 
+  return ((const AVCodec*)avcodec_find_encoder(static_cast<AVCodecID>(codec)));
+}
+
+
+Dictionary GoZenInterface::get_supported_codecs() {
+  Dictionary dic = {};
+  Dictionary audio = {};
+  Dictionary video = {};
+  std::pair<CODEC, String> audio_codecs[] = {
+    {MP3, "MP3"},
+    {AAC, "AAC"},
+    {OPUS, "OPUS"},
+    {VORBIS, "VORBIS"},
+    {FLAC, "FLAC"},
+    {AC3, "AC3"},
+    {EAC3, "EAC3"},
+    {WAV, "WAV"},
+  };
+  std::pair<CODEC, String> video_codecs[] = {
+    {H264, "H264"},
+    {H265, "H265"},
+    {VP9, "VP9"},
+    {MPEG4, "MPEG4"},
+    {MPEG2, "MPEG2"},
+    {MPEG1, "MPEG1"},
+    {AV1, "AV1"},
+    {VP8, "VP8"},
+  };
+  
+  /* Audio codecs */
+  for (const auto& a_codec : audio_codecs) {
+    const AVCodec* codec = avcodec_find_encoder(static_cast<AVCodecID>(a_codec.first));
+    Dictionary entry = {};
+    entry["supported"] = is_codec_supported(a_codec.first);
+    entry["codec_id"] = a_codec.second;
+    entry["hardware_accel"] = codec->capabilities & AV_CODEC_CAP_HARDWARE;
+    audio[a_codec.second] = entry;
+  }
+  
+  /* Video codecs */
+  for (const auto& v_codec : video_codecs) {
+    const AVCodec* codec = avcodec_find_encoder(static_cast<AVCodecID>(v_codec.first));
+    Dictionary entry = {};
+    entry["supported"] = is_codec_supported(v_codec.first);
+    entry["codec_id"] = v_codec.second;
+    entry["hardware_accel"] = codec->capabilities & AV_CODEC_CAP_HARDWARE;
+    video[v_codec.second] = entry;
+  }
+
+  dic["audio"] = audio;
+  dic["video"] = video;
+  return dic;
 }

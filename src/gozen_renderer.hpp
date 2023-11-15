@@ -16,13 +16,14 @@ class GoZenRenderer : public Resource {
   public:
     Ref<GoZenRenderProfile> profile;
 
+    static const int byte_per_pixel = 4;
     struct SwsContext *sws_ctx;
     AVCodecContext *p_codec_context = NULL;
     const AVCodec *codec;
     FILE *p_output_file;
     AVPacket *p_packet;
     AVFrame *p_frame;
-    int ret, i, x, y;
+    int i, x, y;
 
 
     GoZenRenderer() {}

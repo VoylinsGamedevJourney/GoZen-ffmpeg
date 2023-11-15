@@ -24,16 +24,8 @@ class GoZenImporter : public Resource {
     GoZenImporter() {}
     ~GoZenImporter() {}
 
-    int get_video_streams(String file_path);
-
   protected:
     static void _bind_methods() {
-      ClassDB::bind_method(D_METHOD("get_video_streams"), &GoZenImporter::get_video_streams, "file_path");
+      //ClassDB::bind_method(D_METHOD("get_streams"), &GoZenImporter::get_streams, "file_path");
     }
-  
-  private:
-    static int open_codec_context(int *stream_index, AVCodecContext **codec_context, AVFormatContext *format_context, enum AVMediaType type); 
-    static int decode_packet(AVCodecContext *codec, const AVPacket *packet, AVFrame *p_frame, int width, int height, enum AVPixelFormat pix_fmt);
-    static int output_video_frame(AVFrame *p_frame, int width, int height, enum AVPixelFormat pix_fmt);
-    static int output_audio_frame(AVFrame *p_frame);
 };

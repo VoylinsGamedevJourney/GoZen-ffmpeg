@@ -89,21 +89,17 @@ int GoZenRenderer::open_ffmpeg(Ref<GoZenRenderProfile> new_profile) {
 
 // TODO: Make argument int frame_nr, this could allow for multi-threaded rendering ... maybe
 void GoZenRenderer::send_frame(Ref<Image> frame_image) {
-  if (profile == NULL || !p_codec_context) {
+  if (!p_codec_context) {
     UtilityFunctions::printerr("No ffmpeg instance running!");
     return;
   }
-  fflush(stdout);
 
   // Making sure frame is write-able
-  ret = av_frame_make_writable(p_frame);
-  if (ret < 0)
+  if (av_frame_make_writable(p_frame) < 0)
     return;
-  
-  PackedByteArray frame_data = frame_image->save_webp_to_buffer(false, 1.0);
 
   uint8_t *src_data[4] = { frame_image->get_data().ptrw(), NULL, NULL, NULL };
-  int src_linesize[4] = { p_frame->width * 4, 0, 0, 0 };
+  int src_linesize[4] = { p_frame->width * byte_per_pixel, 0, 0, 0 };
   sws_scale(sws_ctx, src_data, src_linesize, 0, p_frame->height, p_frame->data, p_frame->linesize);
 
   p_frame->pts = i;
@@ -113,7 +109,7 @@ void GoZenRenderer::send_frame(Ref<Image> frame_image) {
 
 
 int GoZenRenderer::close_ffmpeg() {
-  if (profile == NULL || !p_codec_context) {
+  if (!p_codec_context) {
     UtilityFunctions::printerr("No ffmpeg instance running!");
     return -1;
   }
