@@ -16,7 +16,7 @@ int GoZenRenderer::open_ffmpeg(Ref<GoZenRenderProfile> new_profile) {
   profile = new_profile;
  
   // Find encoder
-  codec = avcodec_find_encoder_by_name(profile->codec_name.utf8());
+  codec = avcodec_find_encoder(profile->video_codec);
   if (!codec) {
     UtilityFunctions::printerr("Codec not found!");
     return -1;
@@ -43,8 +43,9 @@ int GoZenRenderer::open_ffmpeg(Ref<GoZenRenderProfile> new_profile) {
   p_codec_context->gop_size = 10;
   p_codec_context->max_b_frames = 1;
  
-  if (codec->id == AV_CODEC_ID_H264)
-    av_opt_set(p_codec_context->priv_data, "preset", "slow", 0);
+  // TODO: Add options in render profile for these type of things
+  //if (codec->id == AV_CODEC_ID_H264)
+  //  av_opt_set(p_codec_context->priv_data, "preset", "slow", 0);
  
   // Open video file
   if (avcodec_open2(p_codec_context, codec, NULL) < 0) {

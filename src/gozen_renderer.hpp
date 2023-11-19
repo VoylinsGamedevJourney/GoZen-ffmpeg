@@ -13,9 +13,7 @@ using namespace godot;
 class GoZenRenderer : public Resource {
   GDCLASS(GoZenRenderer, Resource);
 
-  public:
-    Ref<GoZenRenderProfile> profile;
-
+  private:
     static const int byte_per_pixel = 4;
     struct SwsContext *sws_ctx;
     AVCodecContext *p_codec_context = NULL;
@@ -26,17 +24,20 @@ class GoZenRenderer : public Resource {
     int i, x, y;
 
 
+    void _encode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *filename);
+  
+
+  public:
+    Ref<GoZenRenderProfile> profile;
+
+
     GoZenRenderer() {}
     ~GoZenRenderer();
 
     int open_ffmpeg(Ref<GoZenRenderProfile> new_profile);
     void send_frame(Ref<Image> frame_image);
     int close_ffmpeg();
-
-
-  private:
-    void _encode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, FILE *filename);
-    
+  
   protected:
     static inline void _bind_methods() {   
       ClassDB::bind_method(D_METHOD("open_ffmpeg", "new_profile:GoZenRenderProfile"), &GoZenRenderer::open_ffmpeg);
