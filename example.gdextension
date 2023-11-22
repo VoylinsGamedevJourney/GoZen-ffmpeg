@@ -6,6 +6,7 @@ TODO: Maybe find a way to automate the creation of this.
 
 entry_symbol = "gozen_library_init"
 compatibility_minimum = 4.2
+reloadable = true
 
 [libraries]
 

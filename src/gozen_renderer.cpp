@@ -75,7 +75,7 @@ int GoZenRenderer::open_ffmpeg(Ref<GoZenRenderProfile> new_profile) {
   }
 
   sws_ctx = sws_getContext(
-      p_frame->width, p_frame->height, AV_PIX_FMT_RGBA,
+      p_frame->width, p_frame->height, AV_PIX_FMT_RGB24, // AV_PIX_FMT_RGBA was it before
       p_frame->width, p_frame->height, AV_PIX_FMT_YUV420P,
       SWS_BILINEAR, NULL, NULL, NULL); // TODO: Option to change: SWS_BILINEAR in profile (low quality has trouble with this)
   if (!sws_ctx) {

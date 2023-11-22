@@ -19,10 +19,6 @@ Dictionary GoZenImporter::get_container_data(String filename) {
 
   if (open_codec_context(&video_stream_index, &p_video_codec_context, AVMEDIA_TYPE_VIDEO) >= 0) {
     p_video_stream = p_format_context->streams[video_stream_index];
-    
-    //
-    // Normally here video file would be opened
-    //
 
     // Allocate the image where the decoded image will be put
     width = p_video_codec_context->width;
@@ -39,10 +35,6 @@ Dictionary GoZenImporter::get_container_data(String filename) {
 
   if (open_codec_context(&audio_stream_index, &p_audio_codec_context, AVMEDIA_TYPE_AUDIO) >= 0) {
     p_audio_stream = p_format_context->streams[audio_stream_index];
-
-    //
-    // Normally here audio file would be opened
-    //
   }
 
   // Dumping info to stderr
@@ -64,10 +56,10 @@ Dictionary GoZenImporter::get_container_data(String filename) {
     UtilityFunctions::printerr("Could not allocate packet!");
     goto end;
   }
-
+  
   sws_ctx = sws_getContext(
       width, height, AV_PIX_FMT_YUV420P,
-      width, height, AV_PIX_FMT_RGB8,
+      width, height, AV_PIX_FMT_RGB24,
       SWS_BILINEAR, NULL, NULL, NULL); // TODO: Option to change: SWS_BILINEAR in profile (low quality has trouble with this)
   if (!sws_ctx) {
     UtilityFunctions::printerr("Could not get sws context!");
