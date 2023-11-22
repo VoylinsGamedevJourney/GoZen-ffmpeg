@@ -1,9 +1,6 @@
 #include "gozen_importer.hpp"
 
 
-
-
-
 Dictionary GoZenImporter::get_container_data(String filename) {
   int ret = 0;
   Dictionary data = {};
@@ -68,6 +65,15 @@ Dictionary GoZenImporter::get_container_data(String filename) {
     goto end;
   }
 
+  sws_ctx = sws_getContext(
+      width, height, AV_PIX_FMT_YUV420P,
+      width, height, AV_PIX_FMT_RGB8,
+      SWS_BILINEAR, NULL, NULL, NULL); // TODO: Option to change: SWS_BILINEAR in profile (low quality has trouble with this)
+  if (!sws_ctx) {
+    UtilityFunctions::printerr("Could not get sws context!");
+    goto end;
+  }
+
   if (p_video_stream) UtilityFunctions::print("Demuxing video from file.");
   if (p_audio_stream) UtilityFunctions::print("Demuxing audio from file.");
   
@@ -89,11 +95,13 @@ Dictionary GoZenImporter::get_container_data(String filename) {
     decode_packet(p_audio_codec_context, NULL);
   
   UtilityFunctions::print("Demuxing complete!");
-
-  // TODO: Actually find a way to add data to dictionary to display inside of Godot!
-  data["video"] = "...";
-  data["audio"] = "NULL";
-  data["subtitles"] = "NULL";
+  //memcpy(audio.ptrw(), audio_vector.data(), audio_vector.size() * sizeof(uint8_t));
+  for (int64_t value : audio_vector) {
+    audio.append(static_cast<int8_t>(value));
+  }
+  data["video"] = video;
+  data["audio"] = audio;
+  data["subtitles"] = subtitles;
 
 end:
   avcodec_free_context(&p_video_codec_context);
@@ -207,17 +215,28 @@ int GoZenImporter::output_video_frame(AVFrame *frame) {
   //fwrite(p_video_dst_data[0], 1, video_dst_bufsize, video_destination_file);
   //
 
+  PackedByteArray byte_array = PackedByteArray();
+  int expected_rgb_size = width * height * 3;
+  byte_array.resize(expected_rgb_size);
+  uint8_t *w = byte_array.ptrw();
+
+  int src_linesize[4] = { video_dst_linesize[0], 0, 0, 0 };
+  uint8_t *dest_data[1] = { w };
+  sws_scale(sws_ctx, p_video_dst_data, video_dst_linesize, 0, p_frame->height, dest_data, src_linesize);
+
+  Ref<Image> image = memnew(Image);
+  //memcpy(w, p_video_dst_data[0], expected_rgb_size);
+  image->set_data(width, height, false, image->FORMAT_RGB8, byte_array);
+  video.append(byte_array);
+
   return 0;
 }
 
 int GoZenImporter::output_audio_frame(AVFrame *frame) {
   size_t unpadded_linesize = frame->nb_samples * av_get_bytes_per_sample(static_cast<AVSampleFormat>(frame->format));
-  audio_frame_count++;
-
-  //
-  // Here is where the writing of the raw audio happens
-  //fwrite(frame->extended_data[0], 1, unpadded_linesize, audio_destination_file);
-  //
   
+  audio_vector.insert(audio_vector.end(), frame->extended_data[0], frame->extended_data[0] + unpadded_linesize);
+  //audio.append(static_cast<int64_t>(*frame->extended_data[0]));
+  audio_frame_count++;
   return 0;
 }
