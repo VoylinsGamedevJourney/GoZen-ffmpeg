@@ -208,7 +208,7 @@ int GoZenImporter::output_video_frame(AVFrame *frame) {
   video_frame_count++;
 
   // Copy decoded frame to destination buffer
-  av_image_copy(p_video_dst_data, video_dst_linesize,(const uint8_t **)(frame->data), frame->linesize, pixel_format, width, height);
+  //av_image_copy(p_video_dst_data, video_dst_linesize,(const uint8_t **)(frame->data), frame->linesize, pixel_format, width, height);
 
   //
   // Here is where the writing to the raw video file happens
@@ -216,18 +216,21 @@ int GoZenImporter::output_video_frame(AVFrame *frame) {
   //
 
   PackedByteArray byte_array = PackedByteArray();
-  int expected_rgb_size = width * height * 3;
+  const int expected_rgb_size = width * height * 3;
+  int src_linesize[4] = { width * 3, 0, 0, 0 };
   byte_array.resize(expected_rgb_size);
   uint8_t *w = byte_array.ptrw();
 
-  int src_linesize[4] = { video_dst_linesize[0], 0, 0, 0 };
   uint8_t *dest_data[1] = { w };
-  sws_scale(sws_ctx, p_video_dst_data, video_dst_linesize, 0, p_frame->height, dest_data, src_linesize);
+  sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, dest_data, src_linesize);
 
   Ref<Image> image = memnew(Image);
-  //memcpy(w, p_video_dst_data[0], expected_rgb_size);
+  // memcpy not possible as this would copy the yuv420p format
+  //memcpy(dest_data, p_video_dst_data[0], expected_rgb_size);
   image->set_data(width, height, false, image->FORMAT_RGB8, byte_array);
-  video.append(byte_array);
+  Ref<ImageTexture> tex = memnew(ImageTexture);
+  tex->set_image(image);
+  video.append(tex);
 
   return 0;
 }
