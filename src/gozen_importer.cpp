@@ -279,10 +279,17 @@ int GoZenImporter::output_audio_frame(AVFrame *frame) {
   byte_array.resize(unpadded_linesize * 2);
 
   int64_t byte_offset = 0;
-  for (const auto& value : audio_vector) {
+  for (size_t i = 0; i < unpadded_linesize; ++i) {
+    int16_t value = ((int16_t*)new_frame->extended_data[0])[i];
     byte_array.encode_s16(byte_offset, value);
     byte_offset += sizeof(int16_t);
   }
+
+ // int64_t byte_offset = 0;
+ // for (const auto& value : audio_vector) {
+ //   byte_array.encode_s16(byte_offset, value);
+ //   byte_offset += sizeof(int16_t);
+ // }
   
   audio.append_array(byte_array);
   audio_frame_count++;
