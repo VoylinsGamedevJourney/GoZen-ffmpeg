@@ -68,36 +68,23 @@ Dictionary GoZenImporter::get_container_data(String filename) {
     UtilityFunctions::print("Allocated SWS");
   }
 
-  //swr_alloc_set_opts2(
-  //  &p_swr_ctx,
-  //  &p_audio_codec_context->ch_layout,
-  //  AV_SAMPLE_FMT_U8,
-  //  p_audio_codec_context->sample_rate,
-  //  &p_audio_codec_context->ch_layout, // Input channel layout
-  //  p_audio_codec_context->sample_fmt, // Input sample format
-  //  p_audio_codec_context->sample_rate, // Input sample rate
-  //  0, nullptr
-  //);
-
-  //p_swr_ctx = swr_alloc();
-  //av_opt_set_chlayout(p_swr_ctx, "in_channel_layout", &p_audio_codec_context->ch_layout, 0);
-  //av_opt_set_int(p_swr_ctx, "in_sample_rate", p_audio_codec_context->sample_rate, 0);
-  //av_opt_set_sample_fmt(p_swr_ctx, "in_sample_fmt", p_audio_codec_context->sample_fmt, 0);
-
-  //av_opt_set_chlayout(p_swr_ctx, "out_channel_layout", &p_audio_codec_context->ch_layout, 0);
-  //av_opt_set_int(p_swr_ctx, "out_sample_rate", p_audio_codec_context->sample_rate, 0);
-  //av_opt_set_sample_fmt(p_swr_ctx, "out_sample_fmt", AV_SAMPLE_FMT_FLT, 0);
-
-  //swr_alloc_set_opts2(
-  //  &p_swr_ctx,
-  //  &p_frame->ch_layout,
-  //  AV_SAMPLE_FMT_U8,
-  //  p_frame->sample_rate, //44100, // Output sample rate  =  target sample rate!!
-  //  &p_frame->ch_layout, // Input channel layout
-  //  static_cast<AVSampleFormat>(p_frame->format), // Input sample format
-  //  p_frame->sample_rate, // Input sample rate
-  //  0, nullptr);
-
+  
+  swr_result = swr_alloc_set_opts2(
+		&p_swr_ctx,
+		&p_audio_codec_context->ch_layout, new_audio_format, p_audio_codec_context->sample_rate,
+		&p_audio_codec_context->ch_layout, p_audio_codec_context->sample_fmt, p_audio_codec_context->sample_rate,
+		0, nullptr);
+	if (swr_result < 0) {
+		UtilityFunctions::printerr("Failed to obtain SWR context");
+    print_av_err(swr_result);
+		goto end;
+	}
+  if (!p_swr_ctx || swr_init(p_swr_ctx) < 0) {
+    UtilityFunctions::print("Could not allocate resampler context!");
+    goto end;
+  } else {
+    UtilityFunctions::print("Allocated SWR");
+  }
 
   if (p_video_stream) UtilityFunctions::print("Demuxing video from file.");
   if (p_audio_stream) UtilityFunctions::print("Demuxing audio from file.");
@@ -120,10 +107,6 @@ Dictionary GoZenImporter::get_container_data(String filename) {
     decode_packet(p_audio_codec_context, NULL);
   
   UtilityFunctions::print("Demuxing complete!");
-  //memcpy(audio.ptrw(), audio_vector.data(), audio_vector.size() * sizeof(uint8_t));
-  //for (int64_t value : audio_vector) {
-  //  audio.append(static_cast<int8_t>(value));
-  //}
   data["video"] = video;
   data["audio"] = audio;
   data["subtitles"] = subtitles;
@@ -264,70 +247,46 @@ int GoZenImporter::output_video_frame(AVFrame *frame) {
 
 
 int GoZenImporter::output_audio_frame(AVFrame *frame) {
-  //size_t unpadded_linesize = frame->nb_samples * av_get_bytes_per_sample(p_audio_codec_context->sample_fmt);
-  //int out_count = frame->nb_samples * av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT); //swr_get_out_samples(p_swr_ctx, frame->nb_samples);
-  int out_count = swr_get_out_samples(p_swr_ctx, frame->nb_samples);
-  AVSampleFormat new_format = AVSampleFormat::AV_SAMPLE_FMT_FLT;//AVSampleFormat::AV_SAMPLE_FMT_S16 ;
-  // Calculate the size of the output buffer in bytes
-  //size_t out_size = out_count * av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT);
-  int result = swr_alloc_set_opts2(
-		&p_swr_ctx,
-		&p_audio_codec_context->ch_layout, new_format, p_audio_codec_context->sample_rate,
-		&p_audio_codec_context->ch_layout, p_audio_codec_context->sample_fmt, p_audio_codec_context->sample_rate,
-		0, nullptr);
+  AVFrame *new_frame;
+  new_frame = av_frame_alloc();
+	new_frame->format = new_audio_format;
+	new_frame->ch_layout = p_audio_codec_context->ch_layout;
+	new_frame->sample_rate = p_audio_codec_context->sample_rate;
+	new_frame->nb_samples = frame->nb_samples; //swr_get_out_samples(p_swr_ctx, frame->nb_samples);
 
+  int result = av_frame_get_buffer(new_frame, 0);
 	if (result < 0) {
-		UtilityFunctions::printerr("Failed to obtain SWR context");
+    UtilityFunctions::printerr("Could not allocate new frame for swr!");
     print_av_err(result);
+		av_frame_unref(new_frame);
 		return -1;
 	}
-  //if (!p_swr_ctx || swr_init(p_swr_ctx) < 0) {
-  //  UtilityFunctions::print("Could not allocate resampler context!");
-  //  return -1;
-  //} else {
-  //  UtilityFunctions::print("Allocated SWR");
-  //}
   
+  result = swr_convert_frame(p_swr_ctx, new_frame, frame);
+	if (result < 0) {
+		UtilityFunctions::printerr("Could not convert audio frame!");
+    print_av_err(result);
+		av_frame_unref(new_frame);
+		return -1;
+	}
   
-  //AVFrame *new_frame;
-  //new_frame = av_frame_alloc();
-	//new_frame->format = new_format;
-	//new_frame->ch_layout = p_audio_codec_context->ch_layout;
-	//new_frame->sample_rate = p_audio_codec_context->sample_rate;
-	//new_frame->nb_samples = frame->nb_samples;
+  size_t unpadded_linesize = frame->nb_samples * av_get_bytes_per_sample(new_audio_format); 
 
-  //result = av_frame_get_buffer(new_frame, 0);
-	//if (result < 0) {
-    //UtilityFunctions::printerr("Could not allocate new frame for swr!");
-    //print_av_err(result);
-		//av_frame_unref(new_frame);
-		//return -1;
-	//}
-
-  //result = swr_convert_frame(p_swr_ctx, new_frame, frame);
-	//if (result < 0) {
-		//UtilityFunctions::printerr("Could not convert audio frame!");
-    //print_av_err(result);
-		//av_frame_unref(new_frame);
-		//return -1;
-	//}
-  size_t unpadded_linesize = frame->nb_samples * av_get_bytes_per_sample(new_format);//p_audio_codec_context->sample_fmt); 
+  std::vector<int16_t> audio_vector(unpadded_linesize);
+  memcpy(audio_vector.data(), new_frame->extended_data[0], unpadded_linesize);
 
   PackedByteArray byte_array = PackedByteArray();
-  byte_array.resize(unpadded_linesize);
-  uint8_t *w = byte_array.ptrw();
-  //memcpy(w, new_frame->data[0], unpadded_linesize);
-    
-  swr_convert(p_swr_ctx, &w, out_count, (const uint8_t **)&frame->extended_data[0], frame->nb_samples);
-  //swr_convert(p_swr_ctx, &w, out_count, (const uint8_t **)frame->data, frame->nb_samples);
-  //swr_convert(p_swr_ctx, &w, out_count, (const uint8_t **)frame->extended_data, frame->nb_samples);
-  //swr_convert(p_swr_ctx, &w, out_count, (const uint8_t **)frame->extended_data, unpadded_linesize);
-  //swr_convert(p_swr_ctx, &w, frame->nb_samples, (const uint8_t **)frame->extended_data, frame->nb_samples);
-  //memcpy(w, frame->extended_data[0], unpadded_linesize);
+  byte_array.resize(unpadded_linesize * 2);
 
+  int64_t byte_offset = 0;
+  for (const auto& value : audio_vector) {
+    byte_array.encode_s16(byte_offset, value);
+    byte_offset += sizeof(int16_t);
+  }
+  
   audio.append_array(byte_array);
   audio_frame_count++;
-  //av_frame_unref(frame);
+  av_frame_unref(frame);
   return 0;
 }
 

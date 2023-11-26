@@ -37,6 +37,8 @@ class GoZenImporter : public Resource {
     Array video = Array();
     PackedByteArray subtitles = PackedByteArray();
 
+    int swr_result;
+    AVSampleFormat new_audio_format = AV_SAMPLE_FMT_S16; //AV_SAMPLE_FMT_FLT;//AVSampleFormat::AV_SAMPLE_FMT_S16 ;
 
 
     int open_codec_context(int *stream_index, AVCodecContext **codec_context, enum AVMediaType type);
