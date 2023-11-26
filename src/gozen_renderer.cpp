@@ -74,11 +74,11 @@ int GoZenRenderer::open_ffmpeg(Ref<GoZenRenderProfile> new_profile) {
     return -1;
   }
 
-  sws_ctx = sws_getContext(
+  p_sws_ctx = sws_getContext(
       p_frame->width, p_frame->height, AV_PIX_FMT_RGB24, // AV_PIX_FMT_RGBA was it before
       p_frame->width, p_frame->height, AV_PIX_FMT_YUV420P,
       SWS_BILINEAR, NULL, NULL, NULL); // TODO: Option to change: SWS_BILINEAR in profile (low quality has trouble with this)
-  if (!sws_ctx) {
+  if (!p_sws_ctx) {
     UtilityFunctions::printerr("Could not get sws context!");
     return -1;
   }
@@ -101,7 +101,7 @@ void GoZenRenderer::send_frame(Ref<Image> frame_image) {
 
   uint8_t *src_data[4] = { frame_image->get_data().ptrw(), NULL, NULL, NULL };
   int src_linesize[4] = { p_frame->width * byte_per_pixel, 0, 0, 0 };
-  sws_scale(sws_ctx, src_data, src_linesize, 0, p_frame->height, p_frame->data, p_frame->linesize);
+  sws_scale(p_sws_ctx, src_data, src_linesize, 0, p_frame->height, p_frame->data, p_frame->linesize);
 
   p_frame->pts = i;
   i++;
@@ -129,7 +129,7 @@ int GoZenRenderer::close_ffmpeg() {
   avcodec_free_context(&p_codec_context);
   av_frame_free(&p_frame);
   av_packet_free(&p_packet);
-  sws_freeContext(sws_ctx);
+  sws_freeContext(p_sws_ctx);
  
   return 0;
 }

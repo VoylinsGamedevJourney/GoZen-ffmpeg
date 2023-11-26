@@ -15,7 +15,7 @@ class GoZenRenderer : public Resource {
 
   private:
     static const int byte_per_pixel = 4;
-    struct SwsContext *sws_ctx;
+    struct SwsContext *p_sws_ctx;
     AVCodecContext *p_codec_context = NULL;
     const AVCodec *codec;
     FILE *p_output_file;

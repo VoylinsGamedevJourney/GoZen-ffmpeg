@@ -57,14 +57,47 @@ Dictionary GoZenImporter::get_container_data(String filename) {
     goto end;
   }
   
-  sws_ctx = sws_getContext(
+  p_sws_ctx = sws_getContext(
       width, height, AV_PIX_FMT_YUV420P,
       width, height, AV_PIX_FMT_RGB24,
       SWS_BILINEAR, NULL, NULL, NULL); // TODO: Option to change: SWS_BILINEAR in profile (low quality has trouble with this)
-  if (!sws_ctx) {
+  if (!p_sws_ctx) {
     UtilityFunctions::printerr("Could not get sws context!");
     goto end;
+  } else {
+    UtilityFunctions::print("Allocated SWS");
   }
+
+  //swr_alloc_set_opts2(
+  //  &p_swr_ctx,
+  //  &p_audio_codec_context->ch_layout,
+  //  AV_SAMPLE_FMT_U8,
+  //  p_audio_codec_context->sample_rate,
+  //  &p_audio_codec_context->ch_layout, // Input channel layout
+  //  p_audio_codec_context->sample_fmt, // Input sample format
+  //  p_audio_codec_context->sample_rate, // Input sample rate
+  //  0, nullptr
+  //);
+
+  //p_swr_ctx = swr_alloc();
+  //av_opt_set_chlayout(p_swr_ctx, "in_channel_layout", &p_audio_codec_context->ch_layout, 0);
+  //av_opt_set_int(p_swr_ctx, "in_sample_rate", p_audio_codec_context->sample_rate, 0);
+  //av_opt_set_sample_fmt(p_swr_ctx, "in_sample_fmt", p_audio_codec_context->sample_fmt, 0);
+
+  //av_opt_set_chlayout(p_swr_ctx, "out_channel_layout", &p_audio_codec_context->ch_layout, 0);
+  //av_opt_set_int(p_swr_ctx, "out_sample_rate", p_audio_codec_context->sample_rate, 0);
+  //av_opt_set_sample_fmt(p_swr_ctx, "out_sample_fmt", AV_SAMPLE_FMT_FLT, 0);
+
+  //swr_alloc_set_opts2(
+  //  &p_swr_ctx,
+  //  &p_frame->ch_layout,
+  //  AV_SAMPLE_FMT_U8,
+  //  p_frame->sample_rate, //44100, // Output sample rate  =  target sample rate!!
+  //  &p_frame->ch_layout, // Input channel layout
+  //  static_cast<AVSampleFormat>(p_frame->format), // Input sample format
+  //  p_frame->sample_rate, // Input sample rate
+  //  0, nullptr);
+
 
   if (p_video_stream) UtilityFunctions::print("Demuxing video from file.");
   if (p_audio_stream) UtilityFunctions::print("Demuxing audio from file.");
@@ -88,9 +121,9 @@ Dictionary GoZenImporter::get_container_data(String filename) {
   
   UtilityFunctions::print("Demuxing complete!");
   //memcpy(audio.ptrw(), audio_vector.data(), audio_vector.size() * sizeof(uint8_t));
-  for (int64_t value : audio_vector) {
-    audio.append(static_cast<int8_t>(value));
-  }
+  //for (int64_t value : audio_vector) {
+  //  audio.append(static_cast<int8_t>(value));
+  //}
   data["video"] = video;
   data["audio"] = audio;
   data["subtitles"] = subtitles;
@@ -102,6 +135,8 @@ end:
   av_packet_free(&p_packet);
   av_frame_free(&p_frame);
   av_free(p_video_dst_data[0]);
+  sws_freeContext(p_sws_ctx);
+  swr_free(&p_swr_ctx);
 
   return data;
 }
@@ -214,7 +249,7 @@ int GoZenImporter::output_video_frame(AVFrame *frame) {
   uint8_t *w = byte_array.ptrw();
 
   uint8_t *dest_data[1] = { w };
-  sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, dest_data, src_linesize);
+  sws_scale(p_sws_ctx, frame->data, frame->linesize, 0, frame->height, dest_data, src_linesize);
 
   Ref<Image> image = memnew(Image);
   // memcpy not possible as this would copy the yuv420p format
@@ -227,11 +262,80 @@ int GoZenImporter::output_video_frame(AVFrame *frame) {
   return 0;
 }
 
+
 int GoZenImporter::output_audio_frame(AVFrame *frame) {
-  size_t unpadded_linesize = frame->nb_samples * av_get_bytes_per_sample(static_cast<AVSampleFormat>(frame->format));
+  //size_t unpadded_linesize = frame->nb_samples * av_get_bytes_per_sample(p_audio_codec_context->sample_fmt);
+  //int out_count = frame->nb_samples * av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT); //swr_get_out_samples(p_swr_ctx, frame->nb_samples);
+  int out_count = swr_get_out_samples(p_swr_ctx, frame->nb_samples);
+  AVSampleFormat new_format = AVSampleFormat::AV_SAMPLE_FMT_FLT;//AVSampleFormat::AV_SAMPLE_FMT_S16 ;
+  // Calculate the size of the output buffer in bytes
+  //size_t out_size = out_count * av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT);
+  int result = swr_alloc_set_opts2(
+		&p_swr_ctx,
+		&p_audio_codec_context->ch_layout, new_format, p_audio_codec_context->sample_rate,
+		&p_audio_codec_context->ch_layout, p_audio_codec_context->sample_fmt, p_audio_codec_context->sample_rate,
+		0, nullptr);
+
+	if (result < 0) {
+		UtilityFunctions::printerr("Failed to obtain SWR context");
+    print_av_err(result);
+		return -1;
+	}
+  //if (!p_swr_ctx || swr_init(p_swr_ctx) < 0) {
+  //  UtilityFunctions::print("Could not allocate resampler context!");
+  //  return -1;
+  //} else {
+  //  UtilityFunctions::print("Allocated SWR");
+  //}
   
-  audio_vector.insert(audio_vector.end(), frame->extended_data[0], frame->extended_data[0] + unpadded_linesize);
-  //audio.append(static_cast<int64_t>(*frame->extended_data[0]));
+  
+  //AVFrame *new_frame;
+  //new_frame = av_frame_alloc();
+	//new_frame->format = new_format;
+	//new_frame->ch_layout = p_audio_codec_context->ch_layout;
+	//new_frame->sample_rate = p_audio_codec_context->sample_rate;
+	//new_frame->nb_samples = frame->nb_samples;
+
+  //result = av_frame_get_buffer(new_frame, 0);
+	//if (result < 0) {
+    //UtilityFunctions::printerr("Could not allocate new frame for swr!");
+    //print_av_err(result);
+		//av_frame_unref(new_frame);
+		//return -1;
+	//}
+
+  //result = swr_convert_frame(p_swr_ctx, new_frame, frame);
+	//if (result < 0) {
+		//UtilityFunctions::printerr("Could not convert audio frame!");
+    //print_av_err(result);
+		//av_frame_unref(new_frame);
+		//return -1;
+	//}
+  size_t unpadded_linesize = frame->nb_samples * av_get_bytes_per_sample(new_format);//p_audio_codec_context->sample_fmt); 
+
+  PackedByteArray byte_array = PackedByteArray();
+  byte_array.resize(unpadded_linesize);
+  uint8_t *w = byte_array.ptrw();
+  //memcpy(w, new_frame->data[0], unpadded_linesize);
+    
+  swr_convert(p_swr_ctx, &w, out_count, (const uint8_t **)&frame->extended_data[0], frame->nb_samples);
+  //swr_convert(p_swr_ctx, &w, out_count, (const uint8_t **)frame->data, frame->nb_samples);
+  //swr_convert(p_swr_ctx, &w, out_count, (const uint8_t **)frame->extended_data, frame->nb_samples);
+  //swr_convert(p_swr_ctx, &w, out_count, (const uint8_t **)frame->extended_data, unpadded_linesize);
+  //swr_convert(p_swr_ctx, &w, frame->nb_samples, (const uint8_t **)frame->extended_data, frame->nb_samples);
+  //memcpy(w, frame->extended_data[0], unpadded_linesize);
+
+  audio.append_array(byte_array);
   audio_frame_count++;
+  //av_frame_unref(frame);
   return 0;
+}
+
+
+void GoZenImporter::print_av_err(int errnum) {
+  char error_buffer[AV_ERROR_MAX_STRING_SIZE];
+  av_strerror(errnum, error_buffer, sizeof(error_buffer));
+  std::string av_err_str = "AV ERROR: " + std::to_string(errnum) + " - " + error_buffer;
+  UtilityFunctions::printerr(av_err_str.c_str());
+  std::cout << error_buffer << std::endl;
 }

@@ -15,4 +15,5 @@ extern "C" {
   #include <libavutil/imgutils.h>
   #include <libavutil/pixdesc.h>
   #include <libswscale/swscale.h>
+  #include "libswresample/swresample.h"
 }

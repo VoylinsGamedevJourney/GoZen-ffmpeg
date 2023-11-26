@@ -23,7 +23,8 @@ class GoZenImporter : public Resource {
     AVFormatContext *p_format_context = NULL;
     AVCodecContext *p_video_codec_context = NULL, *p_audio_codec_context;
     int width, height;
-    struct SwsContext *sws_ctx;
+    struct SwsContext *p_sws_ctx = nullptr;
+    struct SwrContext *p_swr_ctx = nullptr;
     enum AVPixelFormat pixel_format;
     AVStream *p_video_stream = NULL, *p_audio_stream = NULL;
     uint8_t *p_video_dst_data[4] = {NULL};
@@ -32,7 +33,6 @@ class GoZenImporter : public Resource {
     AVFrame *p_frame = NULL;
     AVPacket *p_packet = NULL;
     int video_frame_count = 0, audio_frame_count = 0;
-    std::vector<int64_t> audio_vector;
     PackedByteArray audio = PackedByteArray();
     Array video = Array();
     PackedByteArray subtitles = PackedByteArray();
@@ -44,6 +44,8 @@ class GoZenImporter : public Resource {
 
     int output_video_frame(AVFrame *frame);
     int output_audio_frame(AVFrame *frame);
+
+    void print_av_err(int errnum);
 
   public:
     GoZenImporter() {}
